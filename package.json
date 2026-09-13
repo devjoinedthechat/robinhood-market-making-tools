@@ -1,0 +1,66 @@
+{
+  "name": "@marketmaker/robinhood-chain",
+  "version": "0.1.0",
+  "description": "Market making SDK for Robinhood Chain (mainnet and testnet): Uniswap V2/V3/V4 trading, fleet execution, risk limits and composable strategies.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devjoinedthechat/robinhood-market-making-tools.git"
+  },
+  "homepage": "https://github.com/devjoinedthechat/robinhood-market-making-tools#readme",
+  "bugs": {
+    "url": "https://github.com/devjoinedthechat/robinhood-market-making-tools/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.10"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "contracts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node scripts/postbuild.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
+    "smoke": "node scripts/smoke.ts",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "robinhood-chain",
+    "market-making",
+    "uniswap",
+    "uniswap-v4",
+    "viem",
+    "arbitrum-orbit",
+    "defi",
+    "sdk"
+  ],
+  "peerDependencies": {
+    "viem": "^2.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "~5.9.3",
+    "viem": "^2.55.19"
+  }
+}
