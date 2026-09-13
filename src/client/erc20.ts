@@ -14,7 +14,7 @@ function withError(result: NotConfirmed, error: string): NotConfirmed {
   return { ...result, error };
 }
 
-export function encodeApprove(spender: Address, amount: bigint): Hex {
+function encodeApprove(spender: Address, amount: bigint): Hex {
   return encodeFunctionData({ abi: ERC20_ABI, functionName: 'approve', args: [spender, amount] });
 }
 
@@ -111,5 +111,3 @@ export async function ensurePermit2Allowance(
   const approval = await executor.execute(wallet, { to: permit2, data });
   return approval.status === 'confirmed' ? approval : withError(approval, `Permit2 approval failed: ${approval.error}`);
 }
-
-export { maxUint256 };

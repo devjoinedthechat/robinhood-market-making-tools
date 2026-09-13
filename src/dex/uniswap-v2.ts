@@ -193,7 +193,7 @@ export class UniswapV2Connector implements DexConnector {
 }
 
 /** Decimal-adjusted price of token0 in token1 from reserves. */
-export function priceFromReserves(reserve0: bigint, reserve1: bigint, decimals0: number, decimals1: number): number {
+function priceFromReserves(reserve0: bigint, reserve1: bigint, decimals0: number, decimals1: number): number {
   if (reserve0 === 0n) return 0;
   return Number(reserve1) / 10 ** decimals1 / (Number(reserve0) / 10 ** decimals0);
 }

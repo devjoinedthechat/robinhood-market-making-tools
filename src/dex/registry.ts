@@ -41,7 +41,7 @@ function isContractLevelFailure(error: unknown): boolean {
   return message.includes('reverted') || message.includes('returned no data');
 }
 
-export function createConnector(deployment: DexDeployment, client: ChainClient): DexConnector {
+function createConnector(deployment: DexDeployment, client: ChainClient): DexConnector {
   switch (deployment.kind) {
     case 'v2':
       return new UniswapV2Connector(deployment, client);

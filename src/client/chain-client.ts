@@ -11,7 +11,6 @@ import {
   defineChain,
   fallback,
   formatUnits,
-  getAddress,
   http,
   type Address,
   type Chain,
@@ -55,7 +54,7 @@ const RPC_BATCH_SIZE = 100;
 /** Addresses per multicall; beyond this nodes refuse on gas or response size. */
 const MULTICALL_CHUNK = 150;
 
-export function toViemChain(chain: RobinhoodChain, rpcUrls: readonly string[]): Chain {
+function toViemChain(chain: RobinhoodChain, rpcUrls: readonly string[]): Chain {
   return defineChain({
     id: chain.chainId,
     name: chain.name,
@@ -307,5 +306,3 @@ async function read<T>(what: string, fn: () => Promise<T>): Promise<T> {
     throw new ReadError(`Could not read ${what}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
-
-export { getAddress };

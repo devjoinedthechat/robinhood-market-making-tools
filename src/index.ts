@@ -36,8 +36,11 @@ export { ChainClient, type ChainClientOptions, type TxOutcome } from './client/c
 export {
   TransactionExecutor,
   classifyBroadcastError,
+  type BroadcastFailure,
   type ExecOptions,
   type ExecResult,
+  type ExecutorDeps,
+  type Fees,
   type TxRequest,
 } from './client/executor.ts';
 
@@ -50,8 +53,8 @@ export { poolDepth } from './dex/types.ts';
 export type { ConcentratedState, DexConnector, DexQuote, PoolState, SwapCall, SwapLog, V4PoolKey } from './dex/types.ts';
 
 // ── market ──────────────────────────────────────────────────────────────────
-export { Market } from './market/market.ts';
-export { chooseQuoteSide, resolveMarket, type ResolveMarketOptions } from './market/resolve.ts';
+export { Market, type MarketDeps } from './market/market.ts';
+export { chooseQuoteSide, resolveMarket, type QuoteSideChoice, type ResolveMarketOptions } from './market/resolve.ts';
 export { DEFAULT_TRADING_POLICY, resolveTradingPolicy } from './market/types.ts';
 export type {
   BuyOrder,

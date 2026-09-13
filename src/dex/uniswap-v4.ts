@@ -120,10 +120,8 @@ export function decodeSlot0(word: Hex): { sqrtPriceX96: bigint; tick: number } {
   };
 }
 
-export interface V4ConnectorOptions {
-  /** Smallest log window the PoolId → PoolKey scan may shrink to after RPC errors. Default 10,000 blocks. */
-  readonly minScanWindow?: bigint;
-}
+/** Smallest log window the PoolId → PoolKey scan shrinks to after RPC errors before giving up. */
+const MIN_SCAN_WINDOW = 10_000n;
 
 export class UniswapV4Connector implements DexConnector {
   readonly kind = 'v4' as const;
@@ -134,11 +132,10 @@ export class UniswapV4Connector implements DexConnector {
   private readonly router: Address;
   private readonly permit2: Address;
   private readonly tiers: readonly { fee: number; tickSpacing: number }[];
-  private readonly minScanWindow: bigint;
   /** PoolId → PoolKey. A PoolId is a hash, so the key cannot be recovered from it. */
   private readonly keys = new Map<string, V4PoolKey>();
 
-  constructor(deployment: DexDeployment, client: ChainClient, options: V4ConnectorOptions = {}) {
+  constructor(deployment: DexDeployment, client: ChainClient) {
     if (deployment.kind !== 'v4') throw new ConfigError(`${deployment.id} is not a V4 deployment`);
     if (!deployment.poolManager || !deployment.permit2) {
       throw new ConfigError(`V4 deployment ${deployment.id} needs poolManager and permit2 addresses`);
@@ -155,7 +152,6 @@ export class UniswapV4Connector implements DexConnector {
       { fee: 3000, tickSpacing: 60 },
       { fee: 10000, tickSpacing: 200 },
     ];
-    this.minScanWindow = options.minScanWindow ?? 10_000n;
   }
 
   // ── pool reads ───────────────────────────────────────────────────────────
@@ -229,7 +225,7 @@ export class UniswapV4Connector implements DexConnector {
         if (from === 0n) return null;
         to = from - 1n;
       } catch (error) {
-        if (window <= this.minScanWindow) {
+        if (window <= MIN_SCAN_WINDOW) {
           throw new ReadError(`Could not scan for V4 pool ${poolId}: ${error instanceof Error ? error.message : String(error)}`, {
             cause: error,
           });
