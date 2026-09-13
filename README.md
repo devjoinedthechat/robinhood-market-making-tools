@@ -4,14 +4,16 @@ A TypeScript SDK for market making on **Robinhood Chain** (mainnet and testnet).
 
 - Trade any ERC-20 pair on Uniswap V2, V3 and V4: ETH/WETH, USDG, tokenized stocks, or anything else with a pool.
 - Uniswap V4 is supported natively, including native-ETH pools and pools with hooks. Quotes come from simulating the real swap.
-- Transactions go through an executor that cannot place the same trade twice.
-- Risk limits are enforced for every strategy: a spend cap, a drawdown limit and a liquidity floor. Paper mode simulates trades without signing.
+- Transactions are signed before they're broadcast and never re-sent at a new nonce, so a retry can't turn one trade into two. An outcome that can't be confirmed is reported as `unknown`, never guessed.
+- Risk limits apply to every strategy: a spend cap, a drawdown limit and a liquidity floor. Paper mode simulates trades without signing.
 - Seven composable strategies are built in, and custom ones plug into the same runner.
 - The only dependency is `viem`. The SDK reads no environment variables, no files and no global state, so it runs the same in Node, serverless functions and bundlers.
 
 No fees, no telemetry, MIT licensed.
 
-> Independent open-source project. Not affiliated with, endorsed by, or operated by Robinhood Markets, Inc. or Uniswap Labs. Nothing here is financial advice. You are responsible for the trades your keys sign.
+> **Status: 0.x and unaudited.** The API may change between minor versions. Start with `readOnly: true`, then testnet, then small amounts on mainnet.
+>
+> Independent open-source project, not affiliated with, endorsed by, or operated by Robinhood Markets, Inc. or Uniswap Labs. Nothing here is financial advice. You are responsible for the trades your keys sign.
 
 ---
 
@@ -29,18 +31,39 @@ No fees, no telemetry, MIT licensed.
 - [Writing a strategy](#writing-a-strategy)
 - [Networks and DEXes](#networks-and-dexes)
 - [Errors](#errors)
+- [Limitations](#limitations)
+- [Handling keys](#handling-keys)
 - [Architecture](#architecture)
 - [Development](#development)
 
 ## Install
 
+The package isn't on the npm registry yet. Install it from GitHub; it builds itself on install:
+
 ```sh
-npm install robinhood-market-making-tools viem
+npm install github:devjoinedthechat/robinhood-market-making-tools viem
 ```
 
-Requires Node 20.10 or later. The package ships both ESM and CommonJS.
+Requires Node 20.10 or later. Ships ESM and CommonJS, with type declarations.
 
 ## Quick start
+
+### 1. Read a market (no wallet needed)
+
+```ts
+import { createMarketMaker, robinhood } from 'robinhood-market-making-tools';
+
+const USDG = '0x5fc5360d0400a0fd4f2af552add042d716f1d168';
+const mm = createMarketMaker({ chain: robinhood, readOnly: true });
+
+// WETH/USDG 0.05% on Uniswap V3, priced in USDG.
+const market = await mm.market('0x69BfaF19C9f377BB306a89aEd9F6B07e2c1a8d9a', { quote: USDG });
+
+console.log(await market.price());         // ETH price in USDG
+console.log(await market.quoteBuy('100')); // what 100 USDG buys, with price impact
+```
+
+### 2. Run a strategy
 
 ```ts
 import { createMarketMaker, robinhoodTestnet, walletFromPrivateKey, gridStrategy } from 'robinhood-market-making-tools';
@@ -59,6 +82,7 @@ const result = await mm.run({
   wallets: [walletFromPrivateKey(process.env.PRIVATE_KEY!)],
   strategies: gridStrategy({ stepPercent: 1, levels: 5, orderSize: 0.001 }),
   risk: { maxSpend: 0.05, maxDrawdown: 0.01 },
+  paper: true, // simulate first; remove to trade
   signal: controller.signal,
   onEvent: (e) => e.type === 'trade' && console.log(e.result),
 });
@@ -66,7 +90,13 @@ const result = await mm.run({
 console.log(result.status, result.trades, result.ledger.netPnl);
 ```
 
-A complete runnable version is in [`examples/grid-testnet.ts`](examples/grid-testnet.ts).
+A complete runnable version is in [`examples/grid-testnet.ts`](examples/grid-testnet.ts):
+
+```sh
+git clone https://github.com/devjoinedthechat/robinhood-market-making-tools && cd robinhood-market-making-tools
+npm install
+PRIVATE_KEY=0x… POOL=0x… PAPER=1 node examples/grid-testnet.ts   # Node 22.18+ runs the TypeScript directly
+```
 
 ## Concepts
 
@@ -99,7 +129,7 @@ const bought = await market.buy({ wallet, amount: '0.01', slippagePct: 2 });
 const sold = await market.sell({ wallet, amount: 'all' }); // exact balance, no float rounding
 ```
 
-Amounts are human units, as a `number` or a decimal string. Prefer strings for exactness. Buy amounts are denominated in the **quote** asset, sell amounts in the **token**.
+Amounts are human units, as a `number` or a decimal string. Prefer strings for exactness. Buy amounts are in the **quote** asset, sell amounts in the **token**.
 
 Find pools for a token:
 
@@ -130,7 +160,7 @@ const result = await mm.run({
 });
 ```
 
-1. **Validate.** Every strategy checks it can start: funded wallets, inventory, an observable trade feed. A strategy that cannot start throws `StrategyNotReadyError` before any trade.
+1. **Validate.** Every strategy checks it can start: funded wallets, inventory, an observable trade feed. A strategy that can't start throws `StrategyNotReadyError` before any trade.
 2. **Lock.** The run locks every wallet. A second run on the same `MarketMaker` that overlaps any of them throws `WalletsBusyError`, because two runs sharing a wallet race each other for nonces.
 3. **Run.** Strategies run concurrently and share one market, fleet and set of risk limits.
 4. **Classify.** The run resolves to a `RunResult` with one of these statuses:
@@ -146,17 +176,17 @@ Events arrive through `onEvent`: `started`, `trade` (with the strategy's label),
 
 ## Built-in strategies
 
-All amounts are human units. Intervals are milliseconds. Every strategy also accepts `slippagePct`.
+Amounts are human units, "quote" means the market's quote asset, and intervals are milliseconds. Every strategy also accepts `slippagePct`.
 
 | Factory | Behaviour | Key parameters (defaults) |
 | --- | --- | --- |
 | `gridStrategy` | Ladder of rungs around a mid price. Buys when price crosses a rung downward and sells when it crosses one upward, once per crossing. Quoting stops past the last rung. | `mid` (spot), `stepPercent` 1, `levels` 5, `orderSize` 0.005 quote, `checkIntervalMs` 5000 |
 | `inventoryRebalanceStrategy` | Holds book value near a token/quote split. Acts only when drift leaves the dead band, and corrects to the target. | `targetPercent` 50, `bandPercent` 5, `maxTradeQuote` (whole drift), `checkIntervalMs` 30000 |
-| `twapStrategy` | Works a size in slices over a duration with ±10% timing jitter. Stops short, and reports `shortBy`, when a slice can't be funded. | `side`, `total` (required), `slices` 10, `durationMs` 1h |
-| `supportBuyStrategy` | Fixed-size buy each time price breaks below a level. Re-arms only after the level is reclaimed by a band. Ends at the cap. | `level` (spot −2%), `amount` 0.01, `rearmPercent` 0.5, `maxBuys` 10 |
-| `takeProfitStrategy` | The mirror image: sells into strength above a level, once per breach. | `level` (spot +2%), `percentOfHolding` 25 or `amount`, `rearmPercent` 0.5, `maxSells` 10 |
-| `dipBuyStrategy` | Buys back a share of **external** sell volume. The fleet's own sells are excluded. Capped per event. | `buybackPercent` 30, `minSellQuote` 0.0003, `maxBuyQuote` 0.015 |
-| `absorbWallStrategy` | Answers a single external sell that is large **relative to pool depth**. The response grows with √severity, is capped per wall and has a cooldown. | `wallPoolPercent` 2, `responsePercent` 50, `maxPerWall` 0.02, `cooldownMs` 60000, `maxWalls` 10 |
+| `twapStrategy` | Works a size in slices over a duration with ±10% timing jitter. Stops short, and reports `shortBy`, when a slice can't be funded. | `side`, `total` (required; quote to buy or tokens to sell), `slices` 10, `durationMs` 1h |
+| `supportBuyStrategy` | Fixed-size buy each time price breaks below a level. Re-arms only after the level is reclaimed by a band. Ends at the cap. | `level` (spot −2%), `amount` 0.01 quote, `rearmPercent` 0.5, `maxBuys` 10 |
+| `takeProfitStrategy` | The mirror image: sells into strength above a level, once per breach. | `level` (spot +2%), `percentOfHolding` 25 or `amount` in tokens, `rearmPercent` 0.5, `maxSells` 10 |
+| `dipBuyStrategy` | Buys back a share of **external** sell volume. The fleet's own sells are excluded. Capped per event. | `buybackPercent` 30, `minSellQuote` 0.0003, `maxBuyQuote` 0.015, `checkIntervalMs` 5000 |
+| `absorbWallStrategy` | Answers a single external sell that is large **relative to pool depth**. The response grows with √severity, is capped per wall and has a cooldown. | `wallPoolPercent` 2, `responsePercent` 50, `maxPerWall` 0.02 quote, `cooldownMs` 60000, `maxWalls` 10 |
 
 The same factories are also collected in one object for discovery: `strategies.grid(...)`, `strategies.twap(...)` and so on.
 
@@ -166,13 +196,13 @@ Limits live in a `GuardedMarket` that wraps the market every strategy trades thr
 
 | Limit | Behaviour |
 | --- | --- |
-| `maxSpend` | Most quote buys may commit. The commitment is made **before** sending. It is released if a buy fails, and kept if the outcome is unknown, so in-flight trades cannot slip past the cap. |
+| `maxSpend` | Most quote buys may commit. The commitment is made **before** sending. It is released if a buy fails, and kept if the outcome is unknown, so in-flight trades can't slip past the cap. |
 | `maxDrawdown` | Halts once `quoteReceived + inventory × lastFillPrice − quoteSpent` is below `−maxDrawdown`. Marked from the run's own fills. Excludes gas. |
 | `liquidityFloorPct` | Halts when quote-side pool depth falls below this percentage of its high-water mark, since a draining pool looks like a falling price. **Defaults to 50** in `run`; set `0` to disable. |
 
 Limits are checked before **buys** only. A sell is never blocked, because the exit must stay open.
 
-`paper: true` fills at spot price without signing anything. It does not model price impact or fees, so it tells you whether a strategy behaves as expected, not what it would earn.
+`paper: true` fills at spot price without signing anything. It doesn't model price impact or fees, so it tells you whether a strategy behaves as expected, not what it would earn.
 
 For verification without any risk, create the client with `readOnly: true`. Reads, quotes and simulations work, and any broadcast throws `BroadcastBlockedError`.
 
@@ -180,14 +210,14 @@ For verification without any risk, create the client with `readOnly: true`. Read
 
 ```ts
 type TradeResult =
-  | { status: 'filled'; quoteAmount; tokenAmount; price; hash; block; feeNative; paper? }
-  | { status: 'failed'; error; hash? }
-  | { status: 'unknown'; error; hash? };
+  | { status: 'filled'; side; wallet; quoteAmount; tokenAmount; price; hash?; block?; feeNative?; paper? }
+  | { status: 'failed'; side; wallet; error; hash? }
+  | { status: 'unknown'; side; wallet; error; hash? };
 ```
 
 - **`filled`**: amounts come from the receipt (Transfer logs, or the DEX's Swap event for native-ETH legs), not from the pre-trade quote.
 - **`failed`**: nothing was spent, or the transaction reverted. It is safe to try again.
-- **`unknown`**: the transaction was broadcast and its outcome could not be established. **It may still land. Do not retry it.** Check the hash, and resolve the wallet's nonce before trading that wallet again.
+- **`unknown`**: the transaction was broadcast and its outcome couldn't be established. **It may still land. Do not retry it.** Check the hash, and resolve the wallet's nonce before trading that wallet again.
 
 The executor enforces this. It signs before broadcasting and records every hash. A retry re-sends the identical bytes, or replaces them at the same nonce with higher fees. It never re-sends at a new nonce.
 
@@ -215,14 +245,15 @@ export function meanReversion(params: { band: number; size: number }): Strategy 
   assertParams('mean-reversion', [check.positive('band', params.band), check.positive('size', params.size)]);
   return {
     name: 'mean-reversion',
-    description: 'Buy below the moving average, sell above it',
+    description: 'Buy below the moving average',
     async run(ctx) {
       const prices: number[] = [];
       while (!ctx.signal.aborted) {
         const price = await readPrice(ctx);          // undefined on a failed read; the loop retries
         if (price !== undefined) {
           prices.push(price);
-          const avg = prices.slice(-20).reduce((a, b) => a + b, 0) / Math.min(prices.length, 20);
+          const recent = prices.slice(-20);
+          const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
           if (price < avg * (1 - params.band)) {
             const buyer = await ctx.fleet.findBuyer(params.size);
             if (buyer) noteResult(ctx, 'buy', await ctx.market.buy({ wallet: buyer.wallet, amount: params.size }));
@@ -251,9 +282,9 @@ Strategies depend only on the `TradingMarket` interface, so you can unit-test th
 | `robinhoodTestnet` | 46630 | Synthra V3, Uniswap V4 |
 
 Other things to know:
-- **RPC endpoints.** Override them with `rpcUrls` (best first; reads fail over down the list), or pass a viem `transport`.
+- **RPC endpoints.** The public endpoints are the defaults. For anything long-running, pass your own with `rpcUrls` (best first; reads fail over down the list), or pass a viem `transport`.
 - **V4 pool lookup.** Name a V4 pool by its PoolKey to skip the log lookup for its key. Hooked V4 pools can't be discovered by pair and must be named by PoolId or PoolKey.
-- **V4 quoting.** V4 quotes simulate the swap inside the PoolManager, with a quoter injected by `eth_call` state override. Nothing is deployed. The quoter source is [`contracts/V4Quoter.sol`](contracts/V4Quoter.sol), and `node scripts/build-quoter.mjs --check` reproduces the embedded bytecode.
+- **V4 quoting.** V4 quotes simulate the swap inside the PoolManager, with a quoter injected by `eth_call` state override. Nothing is deployed. The quoter source is [`contracts/V4Quoter.sol`](contracts/V4Quoter.sol), and its embedded bytecode is reproducible (see [Development](#development)).
 - **MEV.** Robinhood Chain is an Arbitrum Orbit L2 with a sequencer and no public mempool, so there is no front-running to route around and no private-transaction option.
 
 ## Errors
@@ -269,6 +300,23 @@ Every intentional error extends `MarketMakerError` and carries a stable `code`.
 | `WalletsBusyError` | Another run on this `MarketMaker` holds one of the wallets. |
 | `RiskLimitError` | A limit tripped (`limit`: `spend-cap`, `drawdown` or `liquidity-floor`). Surfaces as `status: 'halted'`. |
 | `BroadcastBlockedError` | A `readOnly` client tried to send. |
+
+## Limitations
+
+- **Robinhood Chain only.** Mainnet and testnet; no other networks.
+- **Hooked V4 pools** must be named by PoolId or PoolKey, because `findPools` only discovers hookless pools. A hook that rejects simulated swaps can't be quoted.
+- **Paper mode** prices fills at spot, with no price impact, fees or gas.
+- **Wallet locks** are per `MarketMaker` instance, in one process. Two processes trading the same keys will race for nonces.
+- **The run ledger and drawdown limit** count only this run's own fills, and exclude gas.
+- **Gas-worthiness checks** only work when the quote is ETH or WETH. With any other quote (USDG, stock tokens) every positive trade passes.
+- **Trade feeds on busy pools** can take several seconds on the first poll, because each swap's sender is looked up. Later polls cover only new blocks.
+
+## Handling keys
+
+- A `Wallet` never holds its private key, and the SDK never logs, stores or transmits keys.
+- Load keys at the edge of your application, from a secrets manager or the environment, never from source code.
+- To keep raw keys out of the process entirely, wrap a remote signer (for example a KMS) as a viem `LocalAccount` with `toAccount`, then pass it to `walletFromAccount`.
+- Give each bot its own wallets, and fund them with only what its `maxSpend` allows.
 
 ## Architecture
 
@@ -286,15 +334,25 @@ chains · units · wallet · errors · logger    data and primitives
 
 ## Development
 
+Development requires Node 22.18 or later, because tests and scripts run TypeScript directly.
+
 ```sh
-npm install
-npm run typecheck
+npm install              # also builds dist/
+npm run check            # typecheck, tests and build
 npm test                 # node:test, no network
 npm run smoke            # read-only checks against live mainnet and testnet
-npm run build            # dist/esm + dist/cjs
 ```
 
 `npm run smoke` never signs. It proves swap calldata by `eth_call`, using a state override to fund a throwaway address. Each simulated swap must return at least 99% of the SDK's own quote, which checks the encoding and the quote accuracy together.
+
+To confirm the embedded V4 quoter matches its Solidity source:
+
+```sh
+npm install --no-save solc@0.8.28
+node scripts/build-quoter.mjs --check
+```
+
+Issues and pull requests are welcome. Run `npm run check` before opening a pull request, and add tests for any change to execution, fill accounting or risk limits.
 
 ## License
 
