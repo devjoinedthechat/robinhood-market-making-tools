@@ -1,4 +1,4 @@
-# @marketmaker/robinhood-chain
+# robinhood-market-making-tools
 
 A TypeScript SDK for market making on **Robinhood Chain** (mainnet and testnet).
 
@@ -35,7 +35,7 @@ No fees, no telemetry, MIT licensed.
 ## Install
 
 ```sh
-npm install @marketmaker/robinhood-chain viem
+npm install robinhood-market-making-tools viem
 ```
 
 Requires Node 20.10 or later. The package ships both ESM and CommonJS.
@@ -43,7 +43,7 @@ Requires Node 20.10 or later. The package ships both ESM and CommonJS.
 ## Quick start
 
 ```ts
-import { createMarketMaker, robinhoodTestnet, walletFromPrivateKey, gridStrategy } from '@marketmaker/robinhood-chain';
+import { createMarketMaker, robinhoodTestnet, walletFromPrivateKey, gridStrategy } from 'robinhood-market-making-tools';
 
 const mm = createMarketMaker({ chain: robinhoodTestnet });
 
@@ -209,7 +209,7 @@ createMarketMaker({
 ## Writing a strategy
 
 ```ts
-import { assertParams, check, noteResult, readPrice, type Strategy } from '@marketmaker/robinhood-chain';
+import { assertParams, check, noteResult, readPrice, type Strategy } from 'robinhood-market-making-tools';
 
 export function meanReversion(params: { band: number; size: number }): Strategy {
   assertParams('mean-reversion', [check.positive('band', params.band), check.positive('size', params.size)]);

@@ -1,5 +1,5 @@
 {
-  "name": "@marketmaker/robinhood-chain",
+  "name": "robinhood-market-making-tools",
   "version": "0.1.0",
   "description": "Market making SDK for Robinhood Chain (mainnet and testnet): Uniswap V2/V3/V4 trading, fleet execution, risk limits and composable strategies.",
   "license": "MIT",

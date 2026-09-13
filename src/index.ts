@@ -1,5 +1,5 @@
 /**
- * @marketmaker/robinhood-chain — market making on Robinhood Chain.
+ * robinhood-market-making-tools — market making on Robinhood Chain.
  *
  * Layers, lowest first. Each depends only on the ones above it in this list:
  *
