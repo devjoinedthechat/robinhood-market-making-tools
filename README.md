@@ -1,5 +1,11 @@
 # robinhood-market-making-tools
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs)](https://nodejs.org/)
+[![viem](https://img.shields.io/badge/viem-%5E2.30-1E1E20)](https://viem.sh/)
+[![Uniswap](https://img.shields.io/badge/Uniswap-V2%20%7C%20V3%20%7C%20V4-FF007A?logo=uniswap)](https://docs.uniswap.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 A TypeScript SDK for market making on **Robinhood Chain** (mainnet and testnet).
 
 - Trade any ERC-20 pair on Uniswap V2, V3 and V4: ETH/WETH, USDG, tokenized stocks, or anything else with a pool.
