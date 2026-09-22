@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" width="112" height="112" fill="none" role="img" aria-label="robinhood-market-making-tools">
+  <title>robinhood-market-making-tools</title>
+  <!-- bids: deep away from the mid, thin beside it -->
+  <rect x="16" y="44" width="10" height="40" rx="2" fill="#1f2328"/>
+  <rect x="30" y="56" width="10" height="28" rx="2" fill="#1f2328" opacity="0.72"/>
+  <rect x="44" y="68" width="10" height="16" rx="2" fill="#1f2328" opacity="0.44"/>
+  <!-- asks -->
+  <rect x="58" y="68" width="10" height="16" rx="2" fill="#1f2328" opacity="0.44"/>
+  <rect x="72" y="56" width="10" height="28" rx="2" fill="#1f2328" opacity="0.72"/>
+  <rect x="86" y="44" width="10" height="40" rx="2" fill="#1f2328"/>
+  <!-- the maker sits at the mid -->
+  <path d="M56 40 V84" stroke="#059669" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="56" cy="32" r="5.5" fill="#059669"/>
+  <!-- price axis -->
+  <path d="M12 92 H100" stroke="#1f2328" stroke-width="5" stroke-linecap="round"/>
+</svg>

@@ -1,11 +1,25 @@
-# robinhood-market-making-tools
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo-light.svg" alt="" width="112" height="112">
+  </picture>
+</p>
 
-[![CI](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs)](https://nodejs.org/)
-[![viem](https://img.shields.io/badge/viem-%5E2.30-1E1E20)](https://viem.sh/)
-[![Uniswap](https://img.shields.io/badge/Uniswap-V2%20%7C%20V3%20%7C%20V4-FF007A?logo=uniswap)](https://docs.uniswap.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+<h1 align="center">robinhood-market-making-tools</h1>
+
+<p align="center">
+  <b>Market making on Robinhood Chain, from TypeScript.</b><br>
+  Uniswap V2, V3 and V4 trading, seven built-in strategies, risk limits and a paper mode — with <code>viem</code> as the only dependency.
+</p>
+
+<p align="center">
+  [![CI](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs)](https://nodejs.org/)
+  [![viem](https://img.shields.io/badge/viem-%5E2.30-1E1E20)](https://viem.sh/)
+  [![Uniswap](https://img.shields.io/badge/Uniswap-V2%20%7C%20V3%20%7C%20V4-FF007A?logo=uniswap)](https://docs.uniswap.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+</p>
 
 A TypeScript SDK for market making on **Robinhood Chain** (mainnet and testnet).
 
