@@ -13,12 +13,12 @@
 </p>
 
 <p align="center">
-  [![CI](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
-  [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs)](https://nodejs.org/)
-  [![viem](https://img.shields.io/badge/viem-%5E2.30-1E1E20)](https://viem.sh/)
-  [![Uniswap](https://img.shields.io/badge/Uniswap-V2%20%7C%20V3%20%7C%20V4-FF007A?logo=uniswap)](https://docs.uniswap.org/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+  <a href="https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml"><img src="https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript" alt="TypeScript"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs" alt="Node.js"></a>
+  <a href="https://viem.sh/"><img src="https://img.shields.io/badge/viem-%5E2.30-1E1E20" alt="viem"></a>
+  <a href="https://docs.uniswap.org/"><img src="https://img.shields.io/badge/Uniswap-V2%20%7C%20V3%20%7C%20V4-FF007A?logo=uniswap" alt="Uniswap"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
 </p>
 
 A TypeScript SDK for market making on **Robinhood Chain** (mainnet and testnet).
