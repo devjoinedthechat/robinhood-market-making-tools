@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['22.18', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # `prepare` builds on install and `check` builds again, so install without scripts.
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+
+  dist:
+    # package.json promises node >=20.10, which the matrix above can never prove:
+    # the tests execute TypeScript directly and need 22.18. Consumers import dist/,
+    # so build on a current node and load both outputs on the oldest supported one.
+    name: dist loads on node 20.10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.10'
+      - name: ESM build
+        run: |
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            const { robinhood, parseAmount, poolIdOf } = await import(process.cwd() + '/dist/esm/index.js');
+            assert.equal(robinhood.chainId, 4663);
+            assert.equal(parseAmount('0.1', 18), 10n ** 17n);
+            assert.equal(
+              poolIdOf({
+                currency0: '0x0000000000000000000000000000000000000000',
+                currency1: '0x5fc5360d0400a0fd4f2af552add042d716f1d168',
+                fee: 3000,
+                tickSpacing: 60,
+                hooks: '0x0000000000000000000000000000000000000000',
+              }),
+              '0xd313d79d9d6a714e7bdf02fc42a2c27ede7e51928ffd605126fe9e1192630cf8',
+            );
+            console.log('esm ok on', process.version);
+          "
+      - name: CommonJS build
+        run: |
+          node -e "
+            const assert = require('node:assert/strict');
+            const sdk = require(process.cwd() + '/dist/cjs/index.js');
+            assert.equal(sdk.robinhood.chainId, 4663);
+            assert.equal(sdk.applySlippage(1000n, 1), 990n);
+            assert.equal(typeof sdk.createMarketMaker, 'function');
+            console.log('cjs ok on', process.version);
+          "
+
+  quoter:
+    # The V4 quoter bytecode is embedded in src/. The unit test only checks that the
+    # Solidity source still hashes to the recorded value; this recompiles it and
+    # compares the bytecode, so the embedded artifact can't drift from its source.
+    name: embedded quoter matches its source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm install --no-save solc@0.8.28
+      - run: node scripts/build-quoter.mjs --check

@@ -1,5 +1,6 @@
 # robinhood-market-making-tools
 
+[![CI](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/devjoinedthechat/robinhood-market-making-tools/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.10-339933?logo=nodedotjs)](https://nodejs.org/)
 [![viem](https://img.shields.io/badge/viem-%5E2.30-1E1E20)](https://viem.sh/)
@@ -350,6 +351,8 @@ npm run smoke            # read-only checks against live mainnet and testnet
 ```
 
 `npm run smoke` never signs. It proves swap calldata by `eth_call`, using a state override to fund a throwaway address. Each simulated swap must return at least 99% of the SDK's own quote, which checks the encoding and the quote accuracy together.
+
+CI runs `npm run check` on Node 22.18 and 24 across Linux, macOS and Windows, loads the built package on Node 20.10 to hold the `engines` range honest, and recompiles the V4 quoter with solc to confirm the embedded bytecode matches `contracts/V4Quoter.sol`. The smoke checks run daily, because the addresses they exercise live on a chain this repository does not control.
 
 To confirm the embedded V4 quoter matches its Solidity source:
 

@@ -1,0 +1,43 @@
+name: smoke
+
+# Read-only checks against live Robinhood Chain. The SDK hardcodes router addresses,
+# a V4 PoolId and the quoter bytecode; nothing in the unit tests notices when the
+# chain moves out from under them. No secrets: public RPC endpoints, `eth_call` only.
+#
+# Scheduled runs are disabled automatically after 60 days without repository
+# activity. Re-enable from the Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'src/chains.ts'
+      - 'src/dex/**'
+      - 'scripts/smoke.ts'
+  workflow_dispatch:
+
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: live read-only checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # A public endpoint hiccups; the addresses being wrong does not fix itself.
+      # One retry tells the two apart without hiding a real break.
+      - name: npm run smoke
+        run: npm run smoke || (echo '--- retrying in 60s ---' && sleep 60 && npm run smoke)
